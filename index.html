@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WBSU Papers</title><link rel="stylesheet" href="style.css"></head>
+<body><header><h2>📚 WBSU Papers</h2><nav><a href="index.html">Home</a><a href="dashboard.html">Premium</a><a href="login.html">Login</a></nav></header>
+<main><section class="hero"><h1>WBSU Question Papers</h1><p>Search previous year question papers</p><input id="search" placeholder="Search HINDSC202T, Hindi, 2025..."></section>
+<section class="filters"><select id="subject"><option value="">All Subjects</option><option>Hindi</option><option>English</option><option>Philosophy</option><option>Education</option><option>History</option><option>Political Science</option><option>Sociology</option></select><select id="year"><option value="">All Years</option><option>2026</option><option>2025</option><option>2024</option><option>2023</option><option>2022</option><option>2021</option></select></section><section id="papers" class="papers"></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script>
+const sb=supabase.createClient("YOUR_SUPABASE_URL","YOUR_SUPABASE_PUBLISHABLE_KEY");let papers=[];
+async function load(){let{data,error}=await sb.from("papers").select("*").order("year",{ascending:false});if(error)return console.error(error);papers=data||[];render(papers)}
+function render(a){papersBox.innerHTML=a.length?a.map(p=>`<article class="paper"><div><small>${p.year}</small><h3>${esc(p.title)}</h3><p>${esc(p.subject)} ${p.paper_code?"• "+esc(p.paper_code):""}</p></div>${p.is_premium?'<button onclick="location.href=\'dashboard.html\'">🔒 Premium</button>':`<a href="${p.pdf_url}" target="_blank">📄 View</a>`}</article>`).join(""):"<p>No paper found.</p>"}
+function filter(){let q=search.value.toLowerCase(),s=subject.value,y=year.value;render(papers.filter(p=>`${p.title} ${p.subject} ${p.paper_code} ${p.year}`.toLowerCase().includes(q)&&(!s||p.subject===s)&&(!y||String(p.year)===y)))}
+function esc(x){return String(x||"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+const search=document.getElementById("search"),subject=document.getElementById("subject"),year=document.getElementById("year"),papersBox=document.getElementById("papers");search.oninput=subject.onchange=year.onchange=filter;load();
+</script></body></html>
