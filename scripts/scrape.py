@@ -1,7 +1,8 @@
 import json
 import re
 import time
-from urllib.parse import urljoin, urlparse
+from pathlib import PurePosixPath
+from urllib.parse import urljoin, urlparse, unquote
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,155 +12,219 @@ START_URL = "https://dinabandhumahavidyalaya.org/question-paper/"
 OUTPUT_FILE = "data/papers.json"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; WBSU-Paper-Indexer/1.0)"
+    "User-Agent": "Mozilla/5.0 WBSU-Question-Paper-Indexer"
 }
 
-MAX_PAGES = 300
-DELAY = 0.5
+MAX_PAGES = 5000
+DELAY = 0.2
 
 session = requests.Session()
 session.headers.update(HEADERS)
 
 visited = set()
-papers = []
+papers = {}
+queue = [START_URL]
+
+
+SUBJECTS = [
+    "Bengali",
+    "English",
+    "Hindi",
+    "Sanskrit",
+    "Urdu",
+    "Philosophy",
+    "History",
+    "Political Science",
+    "Education",
+    "Sociology",
+    "Geography",
+    "Economics",
+    "Psychology",
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+    "Botany",
+    "Zoology",
+    "Computer Science",
+    "Commerce",
+    "Physical Education",
+    "Environmental Science",
+]
 
 
 def clean(text):
     return re.sub(r"\s+", " ", text or "").strip()
 
 
-def get_page(url):
+def get_html(url):
     try:
-        r = session.get(url, timeout=20)
-        r.raise_for_status()
-        return r.text
+        response = session.get(url, timeout=25)
+
+        if response.status_code != 200:
+            print("HTTP", response.status_code, url)
+            return None
+
+        return response.text
+
     except Exception as e:
         print("ERROR:", url, e)
         return None
 
 
-def extract_code(text):
+def get_year(path):
+    match = re.search(r"/(20\d{2})(?:/|$)", path)
+
+    if match:
+        return match.group(1)
+
+    match = re.search(r"\b(20\d{2})\b", path)
+
+    return match.group(1) if match else ""
+
+
+def get_subject(path):
+    decoded = unquote(path)
+
+    # First try known subjects
+    for subject in SUBJECTS:
+        if re.search(
+            r"(?i)(?:^|/)" + re.escape(subject) + r"(?:/|$)",
+            decoded
+        ):
+            return subject
+
+    # Fallback: inspect path parts
+    parts = [
+        p.replace("-", " ").strip()
+        for p in PurePosixPath(
+            urlparse(decoded).path
+        ).parts
+    ]
+
+    for part in parts:
+        for subject in SUBJECTS:
+            if part.lower() == subject.lower():
+                return subject
+
+    return ""
+
+
+def get_semester(filename):
+    text = unquote(filename).lower()
+
     patterns = [
-        r"\b[A-Z]{3,8}(?:DSC|MIN|MAJ|SEC|VAC|AEC|IDC|MDC|GE|CC|DSE|DSE?)[A-Z0-9]*\b",
-        r"\b[A-Z]{3,10}\d{3}[A-Z]\b",
-        r"\b[A-Z]{3,10}\d{3,4}[A-Z]{0,3}\b",
+        (r"sem[\s._-]*i\b", "Semester I"),
+        (r"sem[\s._-]*ii\b", "Semester II"),
+        (r"sem[\s._-]*iii\b", "Semester III"),
+        (r"sem[\s._-]*iv\b", "Semester IV"),
+        (r"sem[\s._-]*v\b", "Semester V"),
+        (r"sem[\s._-]*vi\b", "Semester VI"),
+    ]
+
+    for pattern, result in patterns:
+        if re.search(pattern, text):
+            return result
+
+    return ""
+
+
+def get_code(text):
+    text = unquote(text).upper()
+
+    # Examples:
+    # HISDSC202T
+    # HISMIN202T
+    # BNGACOR08T
+    # ENGADSE04T
+    # PHIMIN202T
+
+    patterns = [
+        r"\b[A-Z]{3,8}(?:DSC|MIN|COR|DSE|SEC|AEC|VAC|IDC|MDC|GE)[A-Z0-9]{2,8}\b",
+        r"\b[A-Z]{3,10}(?:DSC|MIN|COR|DSE|SEC|AEC|VAC|IDC|MDC|GE)\d{2,4}T?\b",
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, text.upper())
+        match = re.search(pattern, text)
+
         if match:
             return match.group(0)
 
     return ""
 
 
-def detect_year(text):
-    match = re.search(r"\b(20\d{2})\b", text)
-    return match.group(1) if match else ""
+def get_type(path, filename, code):
+    text = unquote(
+        path + " " + filename + " " + code
+    ).lower()
 
+    if "minor" in text or "min" in code.lower():
+        return "Minor"
 
-def detect_semester(text):
-    t = text.lower()
+    if "major" in text or "dsc" in code.lower():
+        return "Major"
 
-    if re.search(r"\bsemester[\s_-]*i\b|\bsem[\s_-]*i\b", t):
-        return "Semester I"
+    if "honours" in text:
+        return "Honours"
 
-    if re.search(r"\bsemester[\s_-]*ii\b|\bsem[\s_-]*ii\b", t):
-        return "Semester II"
+    if "general" in text:
+        return "General"
 
-    if re.search(r"\bsemester[\s_-]*iii\b|\bsem[\s_-]*iii\b", t):
-        return "Semester III"
+    if "aec" in code.lower():
+        return "AEC"
 
-    if re.search(r"\bsemester[\s_-]*iv\b|\bsem[\s_-]*iv\b", t):
-        return "Semester IV"
+    if "sec" in code.lower():
+        return "SEC"
 
-    if re.search(r"\bsemester[\s_-]*v\b|\bsem[\s_-]*v\b", t):
-        return "Semester V"
+    if "vac" in code.lower():
+        return "VAC"
 
-    if re.search(r"\bsemester[\s_-]*vi\b|\bsem[\s_-]*vi\b", t):
-        return "Semester VI"
+    if "ge" in code.lower():
+        return "GE"
 
-    return ""
-
-
-def detect_type(text):
-    t = text.lower()
-
-    for name in [
-        "Major",
-        "Minor",
-        "DSC",
-        "SEC",
-        "AEC",
-        "VAC",
-        "IDC",
-        "MDC",
-        "GE",
-        "DSE",
-        "CC",
-    ]:
-        if re.search(r"\b" + re.escape(name.lower()) + r"\b", t):
-            return name
+    if "dse" in code.lower():
+        return "DSE"
 
     return ""
 
 
-def detect_subject(text):
-    t = text.lower()
+def get_title(filename):
+    name = unquote(filename)
 
-    subjects = [
-        "Hindi",
-        "English",
-        "Bengali",
-        "Philosophy",
-        "History",
-        "Political Science",
-        "Education",
-        "Sociology",
-        "Geography",
-        "Economics",
-        "Mathematics",
-        "Physics",
-        "Chemistry",
-        "Botany",
-        "Zoology",
-        "Computer Science",
-        "Commerce",
-        "Psychology",
-        "Sanskrit",
-        "Urdu",
-        "Physical Education",
-    ]
+    if name.lower().endswith(".pdf"):
+        name = name[:-4]
 
-    for subject in subjects:
-        if subject.lower() in t:
-            return subject
+    name = name.replace("_", " ")
 
-    return ""
+    return clean(name)
 
 
-def add_paper(url, text):
-    text = clean(text)
+def add_pdf(pdf_url, link_text):
+    parsed = urlparse(pdf_url)
 
-    if not text:
+    path = unquote(parsed.path)
+
+    filename = path.rstrip("/").split("/")[-1]
+
+    if not filename.lower().endswith(".pdf"):
         return
 
-    code = extract_code(text)
-    year = detect_year(text)
-    semester = detect_semester(text)
-    paper_type = detect_type(text)
-    subject = detect_subject(text)
+    year = get_year(path)
 
-    # Only keep likely question-paper links.
-    lower = text.lower() + " " + url.lower()
+    subject = get_subject(path)
 
-    if not (
-        ".pdf" in url.lower()
-        or "question" in lower
-        or "paper" in lower
-        or code
-    ):
-        return
+    semester = get_semester(filename)
+
+    code = get_code(filename)
+
+    if not code:
+        code = get_code(path)
+
+    paper_type = get_type(path, filename, code)
+
+    title = clean(link_text)
+
+    if not title or title.lower() in ["pdf", "download"]:
+        title = get_title(filename)
 
     paper = {
         "year": year,
@@ -167,101 +232,160 @@ def add_paper(url, text):
         "semester": semester,
         "type": paper_type,
         "code": code,
-        "title": text[:180],
-        "url": url,
+        "title": title,
+        "url": pdf_url
     }
 
-    if paper not in papers:
-        papers.append(paper)
+    # URL is unique ID
+    papers[pdf_url] = paper
+
+    print(
+        "PDF:",
+        year,
+        "|",
+        subject,
+        "|",
+        semester,
+        "|",
+        code,
+        "|",
+        filename
+    )
 
 
-def crawl(url):
-    if url in visited:
-        return
+def crawl():
+    count = 0
 
-    if len(visited) >= MAX_PAGES:
-        return
+    while queue and count < MAX_PAGES:
 
-    parsed = urlparse(url)
+        url = queue.pop(0)
 
-    if parsed.netloc != urlparse(START_URL).netloc:
-        return
-
-    visited.add(url)
-
-    print("Scanning:", url)
-
-    html = get_page(url)
-
-    if not html:
-        return
-
-    soup = BeautifulSoup(html, "html.parser")
-
-    # PDF links
-    for a in soup.find_all("a", href=True):
-        href = urljoin(url, a["href"])
-        text = clean(a.get_text(" ", strip=True))
-
-        if ".pdf" in href.lower():
-            add_paper(href, text)
-
-    # Crawl internal pages
-    links = []
-
-    for a in soup.find_all("a", href=True):
-        href = urljoin(url, a["href"])
-        parsed_link = urlparse(href)
-
-        if parsed_link.netloc != parsed.netloc:
+        if url in visited:
             continue
 
-        if href.startswith("mailto:"):
+        parsed = urlparse(url)
+
+        # Only crawl the question-paper area
+        if parsed.netloc != urlparse(START_URL).netloc:
             continue
 
-        if href.startswith("javascript:"):
+        if not parsed.path.startswith("/question-paper/"):
             continue
 
-        if href in visited:
+        visited.add(url)
+
+        count += 1
+
+        print(
+            f"[{count}] Scanning:",
+            url
+        )
+
+        html = get_html(url)
+
+        if not html:
             continue
 
-        links.append(href)
+        soup = BeautifulSoup(
+            html,
+            "html.parser"
+        )
 
-    for link in links:
-        crawl(link)
+        for a in soup.find_all(
+            "a",
+            href=True
+        ):
+
+            href = urljoin(
+                url,
+                a["href"]
+            )
+
+            href = href.split("#")[0]
+
+            link_text = clean(
+                a.get_text(
+                    " ",
+                    strip=True
+                )
+            )
+
+            parsed_link = urlparse(href)
+
+            if (
+                parsed_link.netloc
+                != parsed.netloc
+            ):
+                continue
+
+            if not parsed_link.path.startswith(
+                "/question-paper/"
+            ):
+                continue
+
+            # PDF
+            if parsed_link.path.lower().endswith(
+                ".pdf"
+            ):
+                add_pdf(
+                    href,
+                    link_text
+                )
+                continue
+
+            # Directory / HTML page
+            if href not in visited:
+                if href not in queue:
+                    queue.append(href)
+
         time.sleep(DELAY)
 
 
 def main():
-    print("Starting question-paper scan...")
-    crawl(START_URL)
 
-    # Remove duplicates by URL
-    unique = {}
+    print("=" * 60)
+    print("WBSU QUESTION PAPER SCRAPER")
+    print("=" * 60)
 
-    for paper in papers:
-        unique[paper["url"]] = paper
+    crawl()
 
-    final_papers = list(unique.values())
-
-    final_papers.sort(
-        key=lambda x: (
-            x.get("year", ""),
-            x.get("semester", ""),
-            x.get("subject", ""),
-            x.get("code", ""),
-        ),
-        reverse=True,
+    result = list(
+        papers.values()
     )
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(final_papers, f, ensure_ascii=False, indent=2)
+    # Sort newest first
+    result.sort(
+        key=lambda x: (
+            x.get("year", ""),
+            x.get("subject", ""),
+            x.get("semester", ""),
+            x.get("code", ""),
+            x.get("title", "")
+        ),
+        reverse=True
+    )
+
+    with open(
+        OUTPUT_FILE,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            result,
+            file,
+            ensure_ascii=False,
+            indent=2
+        )
 
     print()
-    print("Finished!")
+    print("=" * 60)
+    print("SCRAPING COMPLETE")
+    print("=" * 60)
     print("Pages scanned:", len(visited))
-    print("Papers found:", len(final_papers))
-    print("Saved to:", OUTPUT_FILE)
+    print("PDF papers found:", len(result))
+    print("Saved:", OUTPUT_FILE)
+    print("=" * 60)
 
 
 if __name__ == "__main__":
