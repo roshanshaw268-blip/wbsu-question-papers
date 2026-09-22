@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>WBSU Question Papers</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      text-align: center;
+      padding: 35px 15px;
+    }
+
+    header h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+    }
+
+    header p {
+      margin: 0;
+      color: #cbd5e1;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      padding: 25px 15px;
+    }
+
+    .search {
+      width: 100%;
+      padding: 15px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    select {
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: white;
+      min-width: 150px;
+    }
+
+    .paper {
+      background: white;
+      padding: 18px;
+      margin-bottom: 12px;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .paper h3 {
+      margin: 0 0 8px;
+    }
+
+    .details {
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .buttons {
+      margin-top: 12px;
+    }
+
+    .btn {
+      display: inline-block;
+      background: #111827;
+      color: white;
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 9px;
+      margin-right: 7px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 50px 10px;
+      color: #64748b;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: #64748b;
+      font-size: 13px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>WBSU Question Papers</h1>
+  <p>All Years • All Subjects • All Semesters</p>
+</header>
+
+<div class="container">
+
+  <input
+    type="text"
+    id="search"
+    class="search"
+    placeholder="Search paper code, subject, year..."
+  >
+
+  <div class="filters">
+
+    <select id="year">
+      <option value="">All Years</option>
+    </select>
+
+    <select id="subject">
+      <option value="">All Subjects</option>
+    </select>
+
+    <select id="semester">
+      <option value="">All Semesters</option>
+    </select>
+
+  </div>
+
+  <div id="papers"></div>
+
+</div>
+
+<footer>
+  WBSU Question Papers
+</footer>
+
+
+<script>
+
+  /*
+    TEMPORARY SAMPLE DATA
+
+    Later this will automatically come
+    from the question-paper index.
+  */
+
+  const papers = [
+
+    {
+      year: "2025",
+      subject: "Philosophy",
+      semester: "Semester II",
+      type: "Minor",
+      code: "PHIMIN202T",
+      title: "Philosophy Minor",
+      url: "https://dinabandhumahavidyalaya.org/question-paper/"
+    },
+
+    {
+      year: "2025",
+      subject: "Philosophy",
+      semester: "Semester II",
+      type: "Major",
+      code: "PHIDSC202T",
+      title: "Philosophy Major",
+      url: "https://dinabandhumahavidyalaya.org/question-paper/"
+    }
+
+  ];
+
+
+  const search = document.getElementById("search");
+  const year = document.getElementById("year");
+  const subject = document.getElementById("subject");
+  const semester = document.getElementById("semester");
+  const papersBox = document.getElementById("papers");
+
+
+  function createOptions(select, values, firstText) {
+
+    const uniqueValues = [...new Set(values.filter(Boolean))];
+
+    select.innerHTML =
+      `<option value="">${firstText}</option>`;
+
+    uniqueValues.sort().forEach(value => {
+
+      const option = document.createElement("option");
+
+      option.value = value;
+      option.textContent = value;
+
+      select.appendChild(option);
+
+    });
+
+  }
+
+
+  function loadFilters() {
+
+    createOptions(
+      year,
+      papers.map(p => p.year),
+      "All Years"
+    );
+
+    createOptions(
+      subject,
+      papers.map(p => p.subject),
+      "All Subjects"
+    );
+
+    createOptions(
+      semester,
+      papers.map(p => p.semester),
+      "All Semesters"
+    );
+
+  }
+
+
+  function showPapers() {
+
+    const q = search.value.toLowerCase();
+
+    const selectedYear = year.value;
+    const selectedSubject = subject.value;
+    const selectedSemester = semester.value;
+
+
+    const result = papers.filter(p => {
+
+      const text =
+        `${p.year} ${p.subject} ${p.semester}
+         ${p.type} ${p.code} ${p.title}`.toLowerCase();
+
+
+      return (
+
+        (!selectedYear || p.year === selectedYear) &&
+
+        (!selectedSubject || p.subject === selectedSubject) &&
+
+        (!selectedSemester || p.semester === selectedSemester) &&
+
+        (!q || text.includes(q))
+
+      );
+
+    });
+
+
+    if (result.length === 0) {
+
+      papersBox.innerHTML =
+        `<div class="empty">
+          No question paper found.
+        </div>`;
+
+      return;
+    }
+
+
+    papersBox.innerHTML = result.map(p => `
+
+      <div class="paper">
+
+        <h3>${p.title}</h3>
+
+        <div class="details">
+
+          Year: ${p.year}<br>
+
+          Subject: ${p.subject}<br>
+
+          Semester: ${p.semester}<br>
+
+          Paper Type: ${p.type}<br>
+
+          Paper Code: <b>${p.code}</b>
+
+        </div>
+
+        <div class="buttons">
+
+          <a
+            class="btn"
+            href="${p.url}"
+            target="_blank"
+          >
+            📖 View Paper
+          </a>
+
+          <a
+            class="btn"
+            href="${p.url}"
+            target="_blank"
+          >
+            ⬇️ Open PDF
+          </a>
+
+        </div>
+
+      </div>
+
+    `).join("");
+
+  }
+
+
+  search.addEventListener("input", showPapers);
+  year.addEventListener("change", showPapers);
+  subject.addEventListener("change", showPapers);
+  semester.addEventListener("change", showPapers);
+
+
+  loadFilters();
+  showPapers();
+
+</script>
+
+</body>
+</html>
