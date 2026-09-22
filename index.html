@@ -2,341 +2,630 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>WBSU Question Papers</title>
+
+  <meta
+    name="description"
+    content="West Bengal State University previous year question papers. Search papers by year, subject, semester and paper code."
+  >
 
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
       background: #f5f7fb;
-      color: #172033;
+      color: #222;
     }
 
     header {
-      background: #111827;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
       color: white;
+      padding: 35px 20px;
       text-align: center;
-      padding: 35px 15px;
     }
 
     header h1 {
-      margin: 0 0 10px;
       font-size: 30px;
+      margin-bottom: 10px;
     }
 
     header p {
-      margin: 0;
-      color: #cbd5e1;
+      font-size: 15px;
+      opacity: 0.95;
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: auto;
-      padding: 25px 15px;
+      padding: 20px;
     }
 
-    .search {
+    .search-box {
+      background: white;
+      padding: 18px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      margin-top: -25px;
+      position: relative;
+    }
+
+    #search {
       width: 100%;
-      padding: 15px;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
       font-size: 16px;
-      margin-bottom: 15px;
+      outline: none;
+    }
+
+    #search:focus {
+      border-color: #6366f1;
     }
 
     .filters {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 14px;
     }
 
     select {
+      width: 100%;
       padding: 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
+      border: 1px solid #ddd;
+      border-radius: 9px;
       background: white;
-      min-width: 150px;
+      font-size: 14px;
     }
 
-    .paper {
+    .stats {
+      margin: 20px 0;
+      font-size: 15px;
+      color: #555;
+    }
+
+    .papers {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .card {
       background: white;
       padding: 18px;
-      margin-bottom: 12px;
       border-radius: 14px;
-      border: 1px solid #e5e7eb;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
-    .paper h3 {
-      margin: 0 0 8px;
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      line-height: 1.35;
     }
 
-    .details {
-      color: #64748b;
+    .info {
       font-size: 14px;
-      line-height: 1.7;
+      line-height: 1.8;
+      color: #555;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4338ca;
+      padding: 5px 9px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin: 3px 3px 3px 0;
     }
 
     .buttons {
-      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
     }
 
     .btn {
-      display: inline-block;
-      background: #111827;
-      color: white;
+      flex: 1;
+      text-align: center;
       text-decoration: none;
-      padding: 10px 14px;
-      border-radius: 9px;
-      margin-right: 7px;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
     }
 
-    .empty {
+    .view {
+      background: #4f46e5;
+      color: white;
+    }
+
+    .view:hover {
+      background: #4338ca;
+    }
+
+    .source {
+      background: #f1f5f9;
+      color: #334155;
+    }
+
+    .loading,
+    .empty,
+    .error {
+      background: white;
+      padding: 30px;
       text-align: center;
-      padding: 50px 10px;
-      color: #64748b;
+      border-radius: 12px;
+      grid-column: 1 / -1;
+    }
+
+    .error {
+      color: #b91c1c;
     }
 
     footer {
+      margin-top: 40px;
+      padding: 25px;
       text-align: center;
-      padding: 30px;
-      color: #64748b;
-      font-size: 13px;
+      background: #111827;
+      color: #d1d5db;
+      font-size: 14px;
+    }
+
+    @media (max-width: 850px) {
+      .papers {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 24px;
+      }
+
+      .papers {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        padding: 15px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h1>WBSU Question Papers</h1>
-  <p>All Years • All Subjects • All Semesters</p>
-</header>
+  <header>
+    <h1>📚 WBSU Question Papers</h1>
+    <p>Previous Year Question Papers — Search by Year, Subject & Semester</p>
+  </header>
 
-<div class="container">
+  <main class="container">
 
-  <input
-    type="text"
-    id="search"
-    class="search"
-    placeholder="Search paper code, subject, year..."
-  >
+    <section class="search-box">
 
-  <div class="filters">
+      <input
+        type="search"
+        id="search"
+        placeholder="🔎 Search subject, paper code or paper name..."
+      >
 
-    <select id="year">
-      <option value="">All Years</option>
-    </select>
+      <div class="filters">
 
-    <select id="subject">
-      <option value="">All Subjects</option>
-    </select>
+        <select id="yearFilter">
+          <option value="">All Years</option>
+        </select>
 
-    <select id="semester">
-      <option value="">All Semesters</option>
-    </select>
+        <select id="subjectFilter">
+          <option value="">All Subjects</option>
+        </select>
 
-  </div>
-
-  <div id="papers"></div>
-
-</div>
-
-<footer>
-  WBSU Question Papers
-</footer>
-
-
-<script>
-
-  /*
-    TEMPORARY SAMPLE DATA
-
-    Later this will automatically come
-    from the question-paper index.
-  */
-
-  const papers = [
-
-    {
-      year: "2025",
-      subject: "Philosophy",
-      semester: "Semester II",
-      type: "Minor",
-      code: "PHIMIN202T",
-      title: "Philosophy Minor",
-      url: "https://dinabandhumahavidyalaya.org/question-paper/"
-    },
-
-    {
-      year: "2025",
-      subject: "Philosophy",
-      semester: "Semester II",
-      type: "Major",
-      code: "PHIDSC202T",
-      title: "Philosophy Major",
-      url: "https://dinabandhumahavidyalaya.org/question-paper/"
-    }
-
-  ];
-
-
-  const search = document.getElementById("search");
-  const year = document.getElementById("year");
-  const subject = document.getElementById("subject");
-  const semester = document.getElementById("semester");
-  const papersBox = document.getElementById("papers");
-
-
-  function createOptions(select, values, firstText) {
-
-    const uniqueValues = [...new Set(values.filter(Boolean))];
-
-    select.innerHTML =
-      `<option value="">${firstText}</option>`;
-
-    uniqueValues.sort().forEach(value => {
-
-      const option = document.createElement("option");
-
-      option.value = value;
-      option.textContent = value;
-
-      select.appendChild(option);
-
-    });
-
-  }
-
-
-  function loadFilters() {
-
-    createOptions(
-      year,
-      papers.map(p => p.year),
-      "All Years"
-    );
-
-    createOptions(
-      subject,
-      papers.map(p => p.subject),
-      "All Subjects"
-    );
-
-    createOptions(
-      semester,
-      papers.map(p => p.semester),
-      "All Semesters"
-    );
-
-  }
-
-
-  function showPapers() {
-
-    const q = search.value.toLowerCase();
-
-    const selectedYear = year.value;
-    const selectedSubject = subject.value;
-    const selectedSemester = semester.value;
-
-
-    const result = papers.filter(p => {
-
-      const text =
-        `${p.year} ${p.subject} ${p.semester}
-         ${p.type} ${p.code} ${p.title}`.toLowerCase();
-
-
-      return (
-
-        (!selectedYear || p.year === selectedYear) &&
-
-        (!selectedSubject || p.subject === selectedSubject) &&
-
-        (!selectedSemester || p.semester === selectedSemester) &&
-
-        (!q || text.includes(q))
-
-      );
-
-    });
-
-
-    if (result.length === 0) {
-
-      papersBox.innerHTML =
-        `<div class="empty">
-          No question paper found.
-        </div>`;
-
-      return;
-    }
-
-
-    papersBox.innerHTML = result.map(p => `
-
-      <div class="paper">
-
-        <h3>${p.title}</h3>
-
-        <div class="details">
-
-          Year: ${p.year}<br>
-
-          Subject: ${p.subject}<br>
-
-          Semester: ${p.semester}<br>
-
-          Paper Type: ${p.type}<br>
-
-          Paper Code: <b>${p.code}</b>
-
-        </div>
-
-        <div class="buttons">
-
-          <a
-            class="btn"
-            href="${p.url}"
-            target="_blank"
-          >
-            📖 View Paper
-          </a>
-
-          <a
-            class="btn"
-            href="${p.url}"
-            target="_blank"
-          >
-            ⬇️ Open PDF
-          </a>
-
-        </div>
+        <select id="semesterFilter">
+          <option value="">All Semesters</option>
+        </select>
 
       </div>
 
-    `).join("");
+    </section>
 
-  }
+    <div class="stats" id="stats">
+      Loading papers...
+    </div>
+
+    <section class="papers" id="papers">
+      <div class="loading">
+        ⏳ Loading question papers...
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    © 2026 WBSU Question Papers
+  </footer>
 
 
-  search.addEventListener("input", showPapers);
-  year.addEventListener("change", showPapers);
-  subject.addEventListener("change", showPapers);
-  semester.addEventListener("change", showPapers);
+  <script>
+
+    let allPapers = [];
+
+    const searchInput =
+      document.getElementById("search");
+
+    const yearFilter =
+      document.getElementById("yearFilter");
+
+    const subjectFilter =
+      document.getElementById("subjectFilter");
+
+    const semesterFilter =
+      document.getElementById("semesterFilter");
+
+    const papersContainer =
+      document.getElementById("papers");
+
+    const stats =
+      document.getElementById("stats");
 
 
-  loadFilters();
-  showPapers();
+    // Load papers automatically
+    async function loadPapers() {
 
-</script>
+      try {
+
+        const response = await fetch(
+          "data/papers.json?time=" + Date.now()
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "papers.json could not be loaded"
+          );
+        }
+
+        allPapers = await response.json();
+
+        setupFilters();
+
+        displayPapers(allPapers);
+
+      } catch (error) {
+
+        console.error(error);
+
+        papersContainer.innerHTML = `
+          <div class="error">
+            ❌ Question papers could not be loaded.
+            <br><br>
+            Please try again later.
+          </div>
+        `;
+
+        stats.textContent =
+          "Unable to load papers.";
+
+      }
+
+    }
+
+
+    // Create filter options
+    function setupFilters() {
+
+      const years = [
+        ...new Set(
+          allPapers
+            .map(p => p.year)
+            .filter(Boolean)
+        )
+      ].sort().reverse();
+
+
+      const subjects = [
+        ...new Set(
+          allPapers
+            .map(p => p.subject)
+            .filter(Boolean)
+        )
+      ].sort();
+
+
+      const semesters = [
+        ...new Set(
+          allPapers
+            .map(p => p.semester)
+            .filter(Boolean)
+        )
+      ];
+
+
+      years.forEach(year => {
+
+        yearFilter.innerHTML += `
+          <option value="${escapeHTML(year)}">
+            ${escapeHTML(year)}
+          </option>
+        `;
+
+      });
+
+
+      subjects.forEach(subject => {
+
+        subjectFilter.innerHTML += `
+          <option value="${escapeHTML(subject)}">
+            ${escapeHTML(subject)}
+          </option>
+        `;
+
+      });
+
+
+      semesters.forEach(semester => {
+
+        semesterFilter.innerHTML += `
+          <option value="${escapeHTML(semester)}">
+            ${escapeHTML(semester)}
+          </option>
+        `;
+
+      });
+
+    }
+
+
+    // Filter papers
+    function filterPapers() {
+
+      const search =
+        searchInput.value
+          .toLowerCase()
+          .trim();
+
+      const year =
+        yearFilter.value;
+
+      const subject =
+        subjectFilter.value;
+
+      const semester =
+        semesterFilter.value;
+
+
+      const filtered = allPapers.filter(paper => {
+
+        const searchable = [
+          paper.title,
+          paper.subject,
+          paper.code,
+          paper.type,
+          paper.year,
+          paper.semester
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+
+        const matchesSearch =
+          !search ||
+          searchable.includes(search);
+
+
+        const matchesYear =
+          !year ||
+          paper.year === year;
+
+
+        const matchesSubject =
+          !subject ||
+          paper.subject === subject;
+
+
+        const matchesSemester =
+          !semester ||
+          paper.semester === semester;
+
+
+        return (
+          matchesSearch &&
+          matchesYear &&
+          matchesSubject &&
+          matchesSemester
+        );
+
+      });
+
+
+      displayPapers(filtered);
+
+    }
+
+
+    // Display cards
+    function displayPapers(papers) {
+
+      stats.textContent =
+        `${papers.length} question paper${
+          papers.length === 1 ? "" : "s"
+        } found`;
+
+
+      if (!papers.length) {
+
+        papersContainer.innerHTML = `
+          <div class="empty">
+            🔍 No question papers found.
+            <br><br>
+            Try another search or filter.
+          </div>
+        `;
+
+        return;
+      }
+
+
+      papersContainer.innerHTML =
+        papers.map(paper => {
+
+          const title =
+            paper.title ||
+            paper.subject ||
+            "Question Paper";
+
+
+          return `
+
+            <article class="card">
+
+              <div>
+
+                <h2>
+                  ${escapeHTML(title)}
+                </h2>
+
+                <div class="info">
+
+                  ${
+                    paper.year
+                      ? `<span class="badge">
+                          📅 ${escapeHTML(paper.year)}
+                         </span>`
+                      : ""
+                  }
+
+                  ${
+                    paper.subject
+                      ? `<span class="badge">
+                          📚 ${escapeHTML(paper.subject)}
+                         </span>`
+                      : ""
+                  }
+
+                  ${
+                    paper.semester
+                      ? `<span class="badge">
+                          🎓 ${escapeHTML(paper.semester)}
+                         </span>`
+                      : ""
+                  }
+
+                  ${
+                    paper.type
+                      ? `<span class="badge">
+                          📄 ${escapeHTML(paper.type)}
+                         </span>`
+                      : ""
+                  }
+
+                  ${
+                    paper.code
+                      ? `<span class="badge">
+                          🔖 ${escapeHTML(paper.code)}
+                         </span>`
+                      : ""
+                  }
+
+                </div>
+
+              </div>
+
+
+              <div class="buttons">
+
+                ${
+                  paper.url
+                    ? `<a
+                         class="btn view"
+                         href="${escapeAttribute(paper.url)}"
+                         target="_blank"
+                         rel="noopener noreferrer"
+                       >
+                         👁 View Paper
+                       </a>`
+                    : ""
+                }
+
+              </div>
+
+            </article>
+
+          `;
+
+        }).join("");
+
+    }
+
+
+    // Prevent HTML injection
+    function escapeHTML(value) {
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    }
+
+
+    function escapeAttribute(value) {
+
+      return escapeHTML(value);
+
+    }
+
+
+    // Search/filter events
+    searchInput.addEventListener(
+      "input",
+      filterPapers
+    );
+
+    yearFilter.addEventListener(
+      "change",
+      filterPapers
+    );
+
+    subjectFilter.addEventListener(
+      "change",
+      filterPapers
+    );
+
+    semesterFilter.addEventListener(
+      "change",
+      filterPapers
+    );
+
+
+    // Start
+    loadPapers();
+
+  </script>
 
 </body>
 </html>
